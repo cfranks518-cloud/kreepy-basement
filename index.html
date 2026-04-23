@@ -238,7 +238,7 @@ html,body{background:#080404;width:100vw;height:100vh;display:flex;align-items:c
     <span style="height:7px;opacity:.45"></span><span style="height:12px;opacity:.7"></span><span style="height:5px;opacity:.35"></span>
     <span style="height:18px;opacity:.9"></span><span style="height:10px;opacity:.55"></span><span style="height:13px;opacity:.65"></span>
   </div>
-  <div class="lsub">DESCENT IN THREE FLOORS</div>
+  
   <div class="sep"></div>
   <p class="inst">
     <strong>↑↓</strong> move &nbsp;·&nbsp; <strong>←→</strong> turn &nbsp;·&nbsp; <strong>↑↑ sprint</strong> (makes noise)<br>
@@ -247,10 +247,7 @@ html,body{background:#080404;width:100vw;height:100vh;display:flex;align-items:c
     don't backtrack. <strong>fate 3+: 3-way dodge. exit is locked until you fight.</strong>
   </p>
   <div class="lprev">
-    <div class="lp2"><span>🔥</span>FURNACE ROOM</div>
-    <div class="lp2"><span>💧</span>DRAINAGE LEVEL</div>
-    <div class="lp2"><span>🩸</span>THE DEEP</div>
-  </div>
+                  </div>
   <div style="display:flex;gap:14px;align-items:center;position:relative;z-index:1;margin-top:2px">
     <button class="sbtn" id="startBtn">DESCEND</button>
     <button class="lore-btn" id="loreBtn">LORE</button>
@@ -317,7 +314,7 @@ html,body{background:#080404;width:100vw;height:100vh;display:flex;align-items:c
     <div class="hc" id="hMsg">walk to the house...</div>
     <div id="hRight">
       <span id="hArmor">🛡 ×2</span>
-      <span id="hFt">FATE ○○○○○</span>
+      <span id="hFt">FATE ○○○○○○○</span>
     </div>
   </div>
   <div id="ctls">[ ↑↑ sprint · ↑ fwd ] [ ↓ ] [ ← ] [ → ] &nbsp;|&nbsp; attack: ↑ jump · ↓ duck · (fate 3+: ← slide) &nbsp;|&nbsp; [ X note ]</div>
@@ -362,6 +359,12 @@ const LORE=[
    'EVACUATION ROUTE: [drawing erased]',
    'found this room. it was occupied. i didn\'t see anything.',
    'if you find this: do not turn around. do NOT look back.'],
+  ['the lights are gone. the walls are gone. you are all that\'s left.',
+   'i used my phone light. it lasted 4 minutes. then i heard breathing.',
+   'CAUTION: TOTAL BLACKOUT ZONE — staff prohibited without escort.',
+   'she was here. i can smell her perfume in the dark.',
+   'there is no exit on this level. there was never meant to be.',
+   'only one rule: keep moving. the moment you stop, it finds you.'],
 ];
 
 
@@ -418,6 +421,14 @@ const THEMES=[
    fogD:9,flickMs:850,lightR:[240,14,14],lightA:.48,
    hints:['something breathes {d}...','it waits {d}','scratching is {d}','do not look {d}'],
    furnitureTypes:['coffin','pentagram','skull','candle','chains','blood','coffin','skull','pentagram','candle']},
+  {name:'THE BLACK',creature:'THE DARKNESS',
+   cAtk:'Total blackout — something grabs — react by feel.',
+   jumpText:'you leap into nothing — claws miss!',duckText:'you drop — it sweeps over you!',slideText:'you roll blind — it passes!',
+   cR:[0,0,0],cG:[0,0,0],wRL:[6,4,4],wRD:[4,2,2],fRN:[3,2,2],fRF:[0,0,0],
+   fogD:2.2,flickMs:400,lightR:[255,240,200],lightA:.72,
+   hints:['a sound to the {d}...','it\'s breathing {d}','footsteps {d}','she screamed from the {d}'],
+   furnitureTypes:['skull','coffin','blood','chains','skull','blood','coffin','skull','blood','chains'],
+   flashlight:true},
 ];
 
 // ── STATE ─────────────────────────────────────────
@@ -616,7 +627,7 @@ function projectSprite(wx,wy){
 // ── DRAW SCENE (full 1:1 raycaster) ────────────────
 function drawScene(ts){
   const th=THEMES[G.level-1],fm=1,hz=IH>>1;  // no flicker dim
-  const fateT=G.fate/5;
+  const fateT=G.fate/7;
 
   // ── CEILING (per-row with subtle concrete staining) ──
   for(let y=0;y<hz;y++){
@@ -1182,6 +1193,27 @@ function drawStairs(ts,dt){
     o.strokeRect(dX+dW*.1,dY+dH*.08,dW*.8,dH*.84);
   }
 
+  // ── FLASHLIGHT (Level 4 only) ─────────────────────────────────────────
+  if(th.flashlight){
+    // Total darkness except a tight cone ahead
+    const fl=o.createRadialGradient(DW/2,DH*.48,0,DW/2,DH*.48,DH*.28+Math.sin(ts*.003)*4);
+    fl.addColorStop(0,  'rgba(0,0,0,0)');
+    fl.addColorStop(.55,'rgba(0,0,0,0)');
+    fl.addColorStop(.75,'rgba(0,0,0,0.72)');
+    fl.addColorStop(.88,'rgba(0,0,0,0.91)');
+    fl.addColorStop(1,  'rgba(0,0,0,0.98)');
+    o.fillStyle=fl; o.fillRect(0,0,DW,DH);
+    // Warm torch tint on the lit area
+    const ftint=o.createRadialGradient(DW/2,DH*.48,0,DW/2,DH*.48,DH*.25);
+    ftint.addColorStop(0,'rgba(255,235,160,0.06)');
+    ftint.addColorStop(1,'rgba(255,235,160,0)');
+    o.fillStyle=ftint; o.fillRect(0,0,DW,DH);
+    // Battery flicker — random micro-cut
+    if(Math.random()<0.012){
+      o.fillStyle='rgba(0,0,0,0.92)'; o.fillRect(0,0,DW,DH);
+    }
+  }
+
   // ── PERIPHERAL DARKNESS (vignette — no railings means dark edges) ────
   const vigPulse=0.5+0.5*Math.sin(ts*.0022+headBob*.1);
   const vigStr=lerp(0.4,0.78,ts2)+vigPulse*0.04;
@@ -1323,7 +1355,7 @@ function drawOverlay(ts){
       const bx=(Math.sin(i*137.5+G.level*5.3)*.5+.5)*DW;
       const bl=20+(Math.sin(i*59.3)*.5+.5)*80;
       const bw=2.2+Math.sin(i*41)*.9;
-      const br=G.fate>=5?215:150;
+      const br=G.fate>=7?215:G.fate>=5?180:150;
       // Stem
       const bg=octx.createLinearGradient(bx,hz,bx,hz+bl);
       bg.addColorStop(0,`rgba(${br},0,0,.92)`);bg.addColorStop(.65,`rgba(40,0,0,.5)`);bg.addColorStop(1,'rgba(0,0,0,0)');
@@ -1433,7 +1465,7 @@ function drawOverlay(ts){
     octx.textAlign='left';
   }
     // ── VIGNETTE (multi-layer, gently breathing) ──
-  const fateT=G.fate/5;
+  const fateT=G.fate/7;
   const vigPulse=.5+.5*Math.sin(G.ts*.00055); // slow heartbeat
   const vigBase=.52+fateT*.38+vigPulse*.04;
   const vig=octx.createRadialGradient(DW/2,DH*.55,DW*.1,DW/2,DH*.5,DW*.82);
@@ -2108,10 +2140,10 @@ function onDodgeKey(key){
 function applyHit(){
   if(G.armorActive){G.armorHits--;if(G.armorHits<=0)G.armorActive=false;updateStatusUI();return}
   // At fate 4+: brutal — one hit = fate
-  if(G.fate>=4){G.fate=Math.min(G.fate+1,5);G.hitBuf=0;updateFateUI();setMsg('▲ FATE TAKEN','#cc0000');if(G.fate>=5)setTimeout(()=>endGame('the basement consumed you'),800);}
+  if(G.fate>=4){G.fate=Math.min(G.fate+1,7);G.hitBuf=0;updateFateUI();setMsg('▲ FATE TAKEN','#cc0000');if(G.fate>=7)setTimeout(()=>endGame('the basement consumed you'),800);}
   else{
     G.hitBuf++;
-    if(G.hitBuf>=2){G.hitBuf=0;G.fate=Math.min(G.fate+1,5);updateFateUI();if(G.fate>=5)setTimeout(()=>endGame('the basement consumed you'),800);}
+    if(G.hitBuf>=2){G.hitBuf=0;G.fate=Math.min(G.fate+1,7);updateFateUI();if(G.fate>=7)setTimeout(()=>endGame('the basement consumed you'),800);}
     else setMsg('▲ one more hit — fate suffers','#882200');
   }
   updateStatusUI();
@@ -2169,13 +2201,13 @@ function updateTick(dt,ts){
       if(wasMove&&G.pendingCheck){G.pendingCheck=false;checkCell()}
     }
   }
-  const tg=G.fate>=4?(G.fate-3)*.55:0;G.glitch+=(tg-G.glitch)*dt*.004;
+  const tg=G.fate>=4?(G.fate-3)*.40:0;G.glitch+=(tg-G.glitch)*dt*.004;
   if(G.creature.lunging) G.creature.lungeT+=dt;
   // Dodge countdown timer
   if(G.state==='attack'&&G.atkSeq.phase==='choose'){
     G.atkSeq.timer=(G.atkSeq.timer||0)+dt;
     // Dodge window shrinks: 3000ms→2000ms→1500ms with fate
-    const _limit=G.fate>=5?1400:G.fate>=4?1700:G.fate>=3?2100:G.fate>=2?2600:3000;
+    const _limit=G.fate>=7?900:G.fate>=6?1100:G.fate>=5?1300:G.fate>=4?1600:G.fate>=3?2000:G.fate>=2?2500:3000;
     if(G.atkSeq.timer>=_limit) onDodgeKey(activeDodges()[1+(0|Math.random()*(activeDodges().length-1))].key); // wrong
   }
   const _now=performance.now();
@@ -2256,16 +2288,16 @@ function setMsg(m,c){
 }
 function updateFateUI(){
   const f=G.fate;
-  const cs=['#1e1e1e','#5a0000','#780909','#961010','#bb1818','#dd2020'];
-  const glows=['none','none',`0 0 4px #5a0000`,`0 0 7px #aa0000`,`0 0 10px #cc0000`,`0 0 14px #ff0000,0 0 28px #aa0000`];
+  const cs=['#1e1e1e','#5a0000','#780909','#961010','#bb1818','#dd2020','#ee2828','#ff3030'];
+  const glows=['none','none',`0 0 4px #5a0000`,`0 0 7px #aa0000`,`0 0 10px #cc0000`,`0 0 14px #ff0000,0 0 28px #aa0000`,`0 0 18px #ff0000,0 0 36px #cc0000`,`0 0 22px #ff2020,0 0 44px #ff0000,0 0 60px #aa0000`];
   const el=document.getElementById('hFt');
-  el.textContent=`FATE ${'●'.repeat(f)}${'○'.repeat(5-f)}`;
+  el.textContent=`FATE ${'●'.repeat(f)}${'○'.repeat(7-f)}`;
   el.style.color=cs[f]||'#dd2020';
   el.style.textShadow=glows[f]||'none';
   // Also update level name color
   const lv=document.getElementById('hLv');
-  lv.style.color=f>=4?'#3a1010':f>=2?'#1e1818':'#1e1e1e';
-  lv.style.textShadow=f>=4?`0 0 8px #40000038`:'none';
+  lv.style.color=f>=6?'#5a0808':f>=4?'#3a1010':f>=2?'#1e1818':'#1e1e1e';
+  lv.style.textShadow=f>=6?`0 0 12px #60000060`:f>=4?`0 0 8px #40000038`:'none';
 }
 function updateStatusUI(){
   const ar=document.getElementById('hArmor');
@@ -2296,6 +2328,7 @@ function introAdvanceStep(){
 }
 
 function initLevel(){
+  if(G.level===4 && G.fate<2){ G.fate=Math.max(G.fate,2); updateFateUI(); }
   G.grid=genMaze();placeItems();
   G.mc=0;G.mr=0;G.facing=0;G.wx=1.5;G.wy=1.5;G.ang=FANG[0];
   G.anim=null;G.pendingCheck=false;moveBuf=null;
@@ -2316,9 +2349,9 @@ function fmtStats(){
 }
 function levelComplete(){
   G.state='done';cancelAnimationFrame(rafId);
-  const isLast=G.level>=3;
+  const isLast=G.level>=4;
   const lch=document.getElementById('lcH'),lcs=document.getElementById('lcSub');
-  if(isLast){lch.textContent='YOU ESCAPED.';lch.style.color='#00aa44';lch.style.textShadow='0 0 30px #0f0,0 0 80px #040';lcs.textContent='all three floors. fate was merciful.'}
+  if(isLast){lch.textContent='YOU ESCAPED.';lch.style.color='#00aa44';lch.style.textShadow='0 0 30px #0f0,0 0 80px #040';lcs.textContent='all four floors. fate was merciful.'}
   else{lch.textContent='DEEPER.';lch.style.color='#00aa44';lch.style.textShadow='0 0 30px #0f0,0 0 80px #040';lcs.textContent=`${THEMES[G.level-1].name} — fate: ${G.fate}/5`}
   show('lcScreen');
   setTimeout(()=>{if(isLast){show('titleScreen')}else{G.level++;initLevel();cancelAnimationFrame(rafId);show('gameScreen');G.lastTs=performance.now();rafId=requestAnimationFrame(renderFrame)}},isLast?4000:2600);
@@ -2333,6 +2366,23 @@ function show(id){
 
 // ── INPUT ─────────────────────────────────────────
 document.addEventListener('keydown',e=>{
+  // ── CHEAT: Ctrl+Shift+4 → jump to Level 4 ──
+  if(e.ctrlKey && e.shiftKey && (e.code==='Digit4'||e.key==='4'||e.key==='$')){
+    e.preventDefault();
+    // Full reset so all state is clean, then override to level 4
+    G.glitch=0;G.hitBuf=0;G.armorActive=false;G.armorHits=0;
+    G.lastFwdTime=0;G.sprintNext=false;G.activeNote=null;G.noteTimer=0;
+    G.stats={steps:0,turns:0,dodged:0,caught:0,cellsSeen:new Set(),startTime:performance.now()};
+    G.atkCells=new Set();G.usedAtk=new Set();G.seenFurniture=new Set();
+    G.clearedEver=0;G.furniture=[];G.notes=[];
+    G.level=4; G.fate=2;
+    cancelAnimationFrame(rafId);
+    initLevel();
+    show('gameScreen');
+    G.lastTs=performance.now();
+    rafId=requestAnimationFrame(renderFrame);
+    return;
+  }
   if(G.state==='intro'){
     if(e.key==='ArrowUp'){e.preventDefault();introAdvanceStep()}
     return;
